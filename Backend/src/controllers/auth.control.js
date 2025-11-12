@@ -2,7 +2,7 @@ import express from 'express';
 import User from '../models/user.model.js';
 import bcrypt from 'bcryptjs';
 import { generateToken } from '../lib/utils.js';
-import cloudinary from 'cloudinary';
+import { v2 as cloudinary } from 'cloudinary';
 
 export const signup = async (req, res) => {
   const { fullname, email, password } = req.body;
@@ -50,11 +50,11 @@ export const login = async(req, res) => {
   try {
     const user = await User.findOne({ email });
     if (!user) {
-      return res.status(400).json({message: "Invalid email or password"});
+      return res.status(400).json({ message: "Invalid email or password" });
     }
     const isPasswordCorrect = await bcrypt.compare(password, user.password);
     if (!isPasswordCorrect) {
-      return res.status(400).json({messsage: "Invalid email or password"})
+      return res.status(400).json({ message: "Invalid email or password" });
     }
     generateToken(user._id, res);
     res.status(200).json({
@@ -65,7 +65,7 @@ export const login = async(req, res) => {
     });
 
   } catch (error) {
-    console .log("Error in login controller:", error);
+    console.log("Error in login controller:", error);
     res.status(500).json({ message: "Server Error" });
   }
 };
@@ -85,16 +85,32 @@ export const logout = (req, res) => {
 
 export const updateProfile = async (req, res) => {
   try {
-    const {profilePic} = req.body;
-    const userId  = req.user._id;
+    const { profilePic } = req.body;
+    const userId = req.user._id;
 
     if (!profilePic) {
-      return res.status(400).json({message: "Profile picture is required"});
+      return res.status(400).json({ message: "Profile picture is required" });
     }
+    // Ensure Cloudinary is configured using environment variables
+    cloudinary.config({
+      cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+      api_key: process.env.CLOUDINARY_API_KEY,
+      api_secret: process.env.CLOUDINARY_API_SECRET,
+    });
 
-    const uploadResponse = await cloudinary.uploader.upload(profilePic)
-    const updatedUser = await User.findByIdAndUpdate(userId, {profilePic:uploadResponse.secure_url}, {new:true})
-    res.status(200).json(updatedUser);
+    const uploadResponse = await cloudinary.uploader.upload(profilePic);
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,
+      { profile: uploadResponse.secure_url },
+      { new: true }
+    ).select("-password");
+
+    res.status(200).json({
+      _id: updatedUser._id,
+      fullname: updatedUser.fullname,
+      email: updatedUser.email,
+      profile: updatedUser.profile,
+    });
   } catch (error) {
     console.log("Error in updateProfile controller:", error);
     res.status(500).json({ message: "Server Error" });

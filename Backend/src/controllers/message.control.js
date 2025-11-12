@@ -1,4 +1,6 @@
 import User from "../models/user.model.js";
+import Message from "../models/message.model.js";
+import { v2 as cloudinary } from "cloudinary";
 export const getuserForSidar = async(req,res) =>{
     try {
         const loggedInUserId = req.user._id;
@@ -12,7 +14,7 @@ export const getuserForSidar = async(req,res) =>{
 
 export const getMessage = async(req,res) =>{
     try {
-        const { id:userTochat } = req.params;
+        const { id: userTochat } = req.params;
         const myId = req.user._id;
 
         const messages = await Message.find({
@@ -20,7 +22,7 @@ export const getMessage = async(req,res) =>{
                 {senderId:myId,receiverId:userTochat},
                 {senderId:userTochat,receiverId:myId}
             ]
-        })
+        });
         res.status(200).json(messages);
     } catch (error) {
         console.error("Error fetching messages:", error);
