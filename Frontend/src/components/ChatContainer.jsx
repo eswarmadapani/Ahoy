@@ -1,10 +1,12 @@
 import { useChatStore } from "../store/useChatStore";
+import { useThemeStore } from "../store/useThemeStore";
 import { useEffect, useRef } from "react";
 import ChatHeader from "./ChatHeader";
 import MessageInput from "./MessageInput";
 import MessageSkeleton from "../components/Skeleton/MessageSkeleton";
 import { useAuthStore } from "../store/useAuthStore";
 import { formatMessageTime } from "../lib/utils";
+import { getThemeColors } from "../constants/themeConfig";
 
 const ChatContainer = () => {
   const {
@@ -14,6 +16,8 @@ const ChatContainer = () => {
     selectedUser,
   } = useChatStore();
   const { authUser } = useAuthStore();
+  const { theme } = useThemeStore();
+  const colors = getThemeColors(theme);
   const messageEndRef = useRef(null);
 
   useEffect(() => {
@@ -42,39 +46,61 @@ const ChatContainer = () => {
     <div className="flex-1 flex flex-col overflow-auto">
       <ChatHeader />
 
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      <div className={`flex-1 overflow-y-auto p-4 space-y-4 ${colors.textPrimary}`}>
         {messages.map((message) => (
           <div
             key={message._id}
-            className={`chat ${message.senderId === authUser._id ? "chat-end" : "chat-start"}`}
+            className={`flex ${message.senderId === authUser._id ? "justify-end" : "justify-start"}`}
             ref={messageEndRef}
           >
-            <div className=" chat-image avatar">
-              <div className="size-10 rounded-full border">
-                <img
-                  src={
-                    message.senderId === authUser._id
-                      ? authUser.profilePic || "/avatar.png"
-                      : selectedUser.profilePic || "/avatar.png"
-                  }
-                  alt="profile pic"
-                />
+            <div className={`flex gap-3 max-w-xs lg:max-w-md xl:max-w-lg ${message.senderId === authUser._id ? "flex-row-reverse" : "flex-row"}`}>
+              {/* Avatar */}
+              <div className="flex-shrink-0">
+                <div className={`w-8 h-8 rounded-full border-2 ${colors.inputBorder} overflow-hidden shadow-md`}>
+                  <img
+                    src={
+                      message.senderId === authUser._id
+                        ? authUser.profilePic || "/avatar.png"
+                        : selectedUser.profilePic || "/avatar.png"
+                    }
+                    alt="profile pic"
+                    className="w-full h-full object-cover"
+                  />
+                </div>
               </div>
-            </div>
-            <div className="chat-header mb-1">
-              <time className="text-xs opacity-50 ml-1">
-                {formatMessageTime(message.createdAt)}
-              </time>
-            </div>
-            <div className="chat-bubble flex flex-col">
-              {message.image && (
-                <img
-                  src={message.image}
-                  alt="Attachment"
-                  className="sm:max-w-[200px] rounded-md mb-2"
-                />
-              )}
-              {message.text && <p>{message.text}</p>}
+
+              {/* Message Content */}
+              <div className={`flex flex-col ${message.senderId === authUser._id ? "items-end" : "items-start"}`}>
+                {/* Time */}
+                <time className={`text-xs ${colors.textTertiary} mb-1`}>
+                  {formatMessageTime(message.createdAt)}
+                </time>
+
+                {/* Message Bubble */}
+                <div
+                  className={`rounded-2xl px-4 py-2.5 shadow-md backdrop-blur-sm transition-all ${
+                    message.senderId === authUser._id
+                      ? `bg-gradient-to-br ${colors.accentPrimary} text-white rounded-br-none`
+                      : `${colors.inputBg} ${colors.textPrimary} border ${colors.inputBorder} rounded-bl-none`
+                  }`}
+                >
+                  {/* Image */}
+                  {message.image && (
+                    <img
+                      src={message.image}
+                      alt="Attachment"
+                      className="sm:max-w-[200px] rounded-lg mb-2 shadow-md"
+                    />
+                  )}
+
+                  {/* Text */}
+                  {message.text && (
+                    <p className="text-sm leading-relaxed break-words">
+                      {message.text}
+                    </p>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
         ))}
@@ -84,4 +110,5 @@ const ChatContainer = () => {
     </div>
   );
 };
-export default ChatContainer; 
+
+export default ChatContainer;
